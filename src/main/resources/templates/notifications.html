@@ -122,7 +122,9 @@
                     </div>
                 </div>
                 <!-- 비디오로 이동하는 버튼 -->
-                <a th:href="@{/videos/detail/{videoId}(videoId=${notification.videoId})}" class="btn">비디오로 이동</a>
+                <a th:href="@{/notifications/read/{notificationId}(notificationId=${notification.id})}" class="btn">
+                    비디오로 이동
+                </a>
             </div>
         </li>
     </ul>
