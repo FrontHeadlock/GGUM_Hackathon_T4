@@ -45,6 +45,9 @@ public class Comment {
     @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CommentLike> likes = new ArrayList<>();
 
+    @OneToMany(mappedBy = "parentComment", cascade = CascadeType.ALL)
+    private List<Reply> replies = new ArrayList<>();
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

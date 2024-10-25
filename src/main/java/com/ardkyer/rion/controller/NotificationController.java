@@ -1,8 +1,10 @@
 package com.ardkyer.rion.controller;
 
 import com.ardkyer.rion.entity.Notification;
+import com.ardkyer.rion.entity.NotificationType;
 import com.ardkyer.rion.repository.NotificationRepository;
 import com.ardkyer.rion.security.PrincipalDetails;
+import com.ardkyer.rion.service.NotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,50 +22,46 @@ import java.util.List;
 @RequestMapping("/notifications")
 public class NotificationController {
 
+    private static final Logger logger = LoggerFactory.getLogger(NotificationController.class);
+
     @Autowired
     private NotificationRepository notificationRepository;
 
+    @Autowired
+    private NotificationService notificationService;
+
     @GetMapping
     public String getNotifications(Model model, @AuthenticationPrincipal PrincipalDetails principalDetails) {
-        // 모든 알림을 가져옴 (읽은 것 포함)
         List<Notification> notifications = notificationRepository.findByUserOrderByCreatedAtDesc(principalDetails.getUser());
         model.addAttribute("notifications", notifications);
         return "notifications";
     }
 
+    @GetMapping("/read/{id}")
+    public String readNotification(@PathVariable Long id) {
+        try {
+            Notification notification = notificationService.getNotification(id);
+            notificationService.markAsRead(id);  // 알림 읽음 처리
 
-
-    private static final Logger logger = LoggerFactory.getLogger(NotificationController.class);
-
-
-    @GetMapping("/read/{notificationId}")
-    public String markAsReadAndRedirect(@PathVariable Long notificationId, @AuthenticationPrincipal PrincipalDetails principalDetails) {
-        System.out.println("markAsReadAndRedirect 메서드 시작");
-
-        Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid notification ID"));
-
-        System.out.println("알림 ID: " + notificationId + "를 찾았습니다.");
-
-        notification.setRead(true);
-        notificationRepository.save(notification);
-
-        System.out.println("알림 ID: " + notificationId + "가 읽음 처리되었습니다.");
-
-        Long videoId = notification.getVideoId();
-        if (videoId == null) {
-            throw new IllegalArgumentException("Video ID is null for this notification");
+            if (notification.getVideo() != null) {
+                return "redirect:/videos/detail/" + notification.getVideo().getId();
+            }
+            return "redirect:/notifications";
+        } catch (Exception e) {
+            logger.error("Error reading notification: ", e);
+            return "redirect:/notifications";
         }
-
-        System.out.println("비디오 ID: " + videoId + "로 리다이렉트 중입니다.");
-        return "redirect:/videos/detail/" + videoId;
     }
 
     @PostMapping("/delete-read")
     public String deleteReadNotifications(@AuthenticationPrincipal PrincipalDetails principalDetails) {
-        List<Notification> readNotifications = notificationRepository.findByUserAndIsReadTrue(principalDetails.getUser());
-        notificationRepository.deleteAll(readNotifications);
-        return "redirect:/notifications";
+        try {
+            List<Notification> readNotifications = notificationRepository.findByUserAndIsReadTrue(principalDetails.getUser());
+            notificationRepository.deleteAll(readNotifications);
+            return "redirect:/notifications";
+        } catch (Exception e) {
+            logger.error("Error deleting read notifications: ", e);
+            return "redirect:/notifications";
+        }
     }
 }
-

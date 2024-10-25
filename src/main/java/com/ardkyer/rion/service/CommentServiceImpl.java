@@ -19,6 +19,9 @@ public class CommentServiceImpl implements CommentService {
     private NotificationRepository notificationRepository;
 
     @Autowired
+    private NotificationService notificationService;  // NotificationService 추가
+
+    @Autowired
     public CommentServiceImpl(CommentRepository commentRepository) {
         this.commentRepository = commentRepository;
     }
@@ -38,10 +41,16 @@ public class CommentServiceImpl implements CommentService {
         if (!savedComment.getVideo().getUser().equals(savedComment.getUser())) {
             Notification notification = new Notification();
             notification.setUser(savedComment.getVideo().getUser());
+            notification.setType(NotificationType.COMMENT);  // 알림 타입 설정
+            notification.setVideo(savedComment.getVideo());  // video 엔티티 직접 설정
+            notification.setComment(savedComment);  // comment 엔티티 설정
             notification.setPostTitle(savedComment.getVideo().getTitle());
             notification.setCommenterName(savedComment.getUser().getUsername());
             notification.setCommentContent(savedComment.getContent());
-            notification.setVideoId(savedComment.getVideo().getId());
+            notification.setMessage(String.format("[%s] %s님이 댓글을 달았습니다: %s",
+                    savedComment.getVideo().getTitle(),
+                    savedComment.getUser().getUsername(),
+                    savedComment.getContent()));
 
             notificationRepository.save(notification);
         }

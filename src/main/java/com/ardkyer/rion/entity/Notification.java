@@ -1,92 +1,54 @@
 package com.ardkyer.rion.entity;
 
 import jakarta.persistence.*;
-
+import lombok.Getter;
+import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
+@Getter
+@Setter
 public class Notification {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    private User user;  // 알림을 받을 사용자
+    private User user;
+
+    @Enumerated(EnumType.STRING)
+    private NotificationType type;
 
     private String postTitle;  // 게시글 제목
     private String commenterName;  // 댓글 작성자 이름
     private String commentContent;  // 댓글 내용
-    private Long videoId;  // 비디오 ID 추가 (비디오로 이동할 때 사용)
 
-    private boolean isRead = false;  // 알림 읽음 여부
+    private boolean isRead;  // 알림 읽음 여부
+    private String message;
+    private LocalDateTime createdAt;
 
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "video_id")
+    private Video video;
 
-    // Getter와 Setter 추가
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "comment_id")
+    private Comment comment;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reply_id")
+    private Reply reply;
+
+    // video 엔티티에서 ID를 가져오는 메소드
     public Long getVideoId() {
-        return videoId;
+        return video != null ? video.getId() : null;
     }
 
-    public void setVideoId(Long videoId) {
-        this.videoId = videoId;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public String getPostTitle() {
-        return postTitle;
-    }
-
-    public void setPostTitle(String postTitle) {
-        this.postTitle = postTitle;
-    }
-
-    public String getCommenterName() {
-        return commenterName;
-    }
-
-    public void setCommenterName(String commenterName) {
-        this.commenterName = commenterName;
-    }
-
-    public String getCommentContent() {
-        return commentContent;
-    }
-
-    public void setCommentContent(String commentContent) {
-        this.commentContent = commentContent;
-    }
-
-    public boolean isRead() {
-        return isRead;
-    }
-
-    public void setRead(boolean isRead) {
-        this.isRead = isRead;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
+    // 기본 생성자
+    public Notification() {
+        this.isRead = false;
+        this.createdAt = LocalDateTime.now();
     }
 }
