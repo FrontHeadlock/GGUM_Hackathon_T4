@@ -9,8 +9,10 @@ import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collection;
 import java.util.Map;
 
 @RestController
@@ -23,7 +25,8 @@ public class ItemUnitController {
     @Autowired
     private VideoService videoService;
 
-    @Getter @Setter
+    @Getter
+    @Setter
     public static class StatusUpdateRequest {
         private String status;
     }
@@ -31,11 +34,49 @@ public class ItemUnitController {
     @PutMapping("/{id}/status")
     public ResponseEntity<?> updateUnitStatus(
             @PathVariable Long id,
-            @RequestBody StatusUpdateRequest request,
-            Authentication authentication) {
+            @RequestBody StatusUpdateRequest request) {  // Authentication 파라미터만 제거
         try {
             ItemStatus newStatus = ItemStatus.valueOf(request.getStatus());
-            itemUnitService.updateUnitStatus(id, newStatus, authentication);
+
+            // 테스트용 더미 Authentication 생성
+            Authentication dummyAuth = new Authentication() {
+                @Override
+                public Collection<? extends GrantedAuthority> getAuthorities() {
+                    return null;
+                }
+
+                @Override
+                public Object getCredentials() {
+                    return null;
+                }
+
+                @Override
+                public Object getDetails() {
+                    return null;
+                }
+
+                @Override
+                public Object getPrincipal() {
+                    return null;
+                }
+
+                @Override
+                public boolean isAuthenticated() {
+                    return true;
+                }
+
+                @Override
+                public void setAuthenticated(boolean isAuthenticated) {
+                }
+
+                @Override
+                public String getName() {
+                    return "as12";  // 여기서 고정된 사용자명 사용
+                }
+            };
+
+            // 기존 서비스 메소드 그대로 사용
+            itemUnitService.updateUnitStatus(id, newStatus, dummyAuth);
 
             return ResponseEntity.ok(Map.of(
                     "success", true,

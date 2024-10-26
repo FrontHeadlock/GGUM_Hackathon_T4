@@ -53,11 +53,10 @@ public class UserController {
 
     @GetMapping("/notifications/unread-count")
     @Operation(summary = "Get unread notifications count")
-    public ResponseEntity<?> getUnreadNotificationsCount(
-            @AuthenticationPrincipal PrincipalDetails principalDetails) {
-        int unreadCount = notificationRepository.countByUserAndIsReadFalse(
-                principalDetails.getUser()
-        );
+    public ResponseEntity<?> getUnreadNotificationsCount() {  // @AuthenticationPrincipal 제거
+        // 고정된 "as12" 사용자 사용
+        User user = userService.findByUsername("as12");
+        int unreadCount = notificationRepository.countByUserAndIsReadFalse(user);
         return ResponseEntity.ok(Map.of("unreadCount", unreadCount));
     }
 

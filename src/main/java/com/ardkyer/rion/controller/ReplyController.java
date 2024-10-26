@@ -25,15 +25,15 @@ public class ReplyController {
     @PostMapping("/comments/{commentId}")
     public ResponseEntity<Map<String, Object>> addReply(
             @PathVariable Long commentId,
-            @RequestBody Map<String, String> request,
-            Authentication authentication) {
+            @RequestBody Map<String, String> request) {  // Authentication 제거
 
         Map<String, Object> response = new HashMap<>();
         try {
-            User user = userService.findByUsername(authentication.getName());
+            // 고정된 사용자 "as12" 사용
+            User user = userService.findByUsername("as12");
             Reply reply = replyService.addReply(commentId, request.get("content"), user);
 
-            // 응답 데이터 직접 구성
+            // 응답 데이터 구성
             Map<String, Object> replyData = new HashMap<>();
             replyData.put("id", reply.getId());
             replyData.put("content", reply.getContent());

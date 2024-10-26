@@ -289,10 +289,10 @@ public class UserServiceImpl implements UserService {
     public LoginResponse login(LoginRequest request) {
         try {
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())  // email -> username
             );
 
-            User user = userRepository.findByEmail(request.getEmail())
+            User user = userRepository.findByUsername(request.getUsername())  // findByEmail -> findByUsername
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             String token = jwtTokenProvider.createToken(user.getUsername());
@@ -302,8 +302,7 @@ public class UserServiceImpl implements UserService {
                     .user(UserResponse.from(user))
                     .build();
         } catch (Exception e) {
-            throw new RuntimeException("Invalid email or password");
+            throw new RuntimeException("Invalid username or password");  // 에러 메시지도 수정
         }
     }
-
 }
