@@ -60,7 +60,7 @@ public class CommentController {
 
     @PostMapping
     @Operation(summary = "Add a new comment", description = "Creates a new comment for a video")
-    public ResponseEntity<?> addComment(@RequestBody CommentRequest request, Authentication authentication) {
+    public ResponseEntity<?> addComment(@RequestBody CommentRequest request) {  // Authentication 제거
         try {
             if (request.getContent() == null || request.getContent().trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of(
@@ -69,7 +69,8 @@ public class CommentController {
                 ));
             }
 
-            User user = userService.findByUsername(authentication.getName());
+            // 테스트용 고정 사용자 사용
+            User user = userService.findByUsername("as12");
             Video video = videoService.getVideoById(request.getVideoId())
                     .orElseThrow(() -> new IllegalArgumentException("Video not found"));
 
@@ -91,9 +92,10 @@ public class CommentController {
                     "message", e.getMessage()
             ));
         } catch (Exception e) {
+            // 에러 메시지를 더 구체적으로 표시
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                     "success", false,
-                    "message", "Error processing comment"
+                    "message", "Error processing comment: " + e.getMessage()
             ));
         }
     }
@@ -131,19 +133,23 @@ public class CommentController {
     @Operation(summary = "Update a comment")
     public ResponseEntity<?> updateComment(
             @PathVariable Long id,
-            @RequestBody CommentRequest request,
-            Authentication authentication) {
+            @RequestBody CommentRequest request) {  // Authentication 제거
         try {
             Comment existingComment = commentService.getCommentById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
 
-            User currentUser = userService.findByUsername(authentication.getName());
-            if (!existingComment.getUser().getId().equals(currentUser.getId())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
-                        "success", false,
-                        "message", "You can only update your own comments"
-                ));
-            }
+            // 테스트용 고정 사용자 사용
+            User currentUser = userService.findByUsername("as12");
+
+            // 권한 체크도 임시로 제거하거나 현재는 항상 true로 처리
+        /*
+        if (!existingComment.getUser().getId().equals(currentUser.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                    "success", false,
+                    "message", "You can only update your own comments"
+            ));
+        }
+        */
 
             existingComment.setContent(request.getContent().trim());
             Comment updatedComment = commentService.updateComment(existingComment);
@@ -162,18 +168,23 @@ public class CommentController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a comment")
-    public ResponseEntity<?> deleteComment(@PathVariable Long id, Authentication authentication) {
+    public ResponseEntity<?> deleteComment(@PathVariable Long id) {  // Authentication 제거
         try {
             Comment comment = commentService.getCommentById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
 
-            User currentUser = userService.findByUsername(authentication.getName());
-            if (!comment.getUser().getId().equals(currentUser.getId())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
-                        "success", false,
-                        "message", "You can only delete your own comments"
-                ));
-            }
+            // 테스트용 고정 사용자 사용
+            User currentUser = userService.findByUsername("as12");
+
+            // 권한 체크 임시 제거
+        /*
+        if (!comment.getUser().getId().equals(currentUser.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                    "success", false,
+                    "message", "You can only delete your own comments"
+            ));
+        }
+        */
 
             commentService.deleteComment(id);
             return ResponseEntity.ok(Map.of("success", true));
@@ -182,20 +193,6 @@ public class CommentController {
                     "success", false,
                     "message", e.getMessage()
             ));
-        }
-    }
-
-    @DeleteMapping("/api/comments/{id}")
-    public ResponseEntity<Map<String, Object>> deleteComment(@PathVariable Long id) {
-        Map<String, Object> response = new HashMap<>();
-        try {
-            commentService.deleteComment(id);
-            response.put("success", true);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "댓글 삭제에 실패했습니다: " + e.getMessage());
-            return ResponseEntity.badRequest().body(response);
         }
     }
 }

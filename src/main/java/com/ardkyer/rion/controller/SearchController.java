@@ -77,13 +77,10 @@ public class SearchController {
             description = "Search for videos based on the query, which can be an exercise name or a hashtag"
     )
     public ResponseEntity<SearchResponse> search(
-            @Parameter(description = "The search query (exercise name or hashtag)")
             @RequestParam(value = "query", required = false) String query,
-            @Parameter(description = "The source of the search query (search or exercise)")
-            @RequestParam(value = "source", required = false) String source,
-            Authentication authentication) {
+            @RequestParam(value = "source", required = false) String source){
 
-        User user = userService.findByUsername(authentication.getName());
+        User user = userService.findByUsername("as12");
         SearchResponse response = new SearchResponse();
 
         // 검색 결과 처리
@@ -115,26 +112,16 @@ public class SearchController {
     }
 
     @DeleteMapping("/recent")
-    @Operation(
-            summary = "Delete recent search query",
-            description = "Delete a specific recent search query of the logged-in user"
-    )
     public ResponseEntity<Void> deleteRecentSearch(
-            @Parameter(description = "The search query to delete")
-            @RequestParam String query,
-            Authentication authentication) {
-        User user = userService.findByUsername(authentication.getName());
+            @RequestParam String query) {
+        User user = userService.findByUsername("as12");
         recentSearchService.deleteRecentSearch(user, query);
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/recent/all")
-    @Operation(
-            summary = "Delete all recent search queries",
-            description = "Delete all recent search queries of the logged-in user"
-    )
-    public ResponseEntity<Void> deleteAllRecentSearches(Authentication authentication) {
-        User user = userService.findByUsername(authentication.getName());
+    public ResponseEntity<Void> deleteAllRecentSearches() {
+        User user = userService.findByUsername("as12");
         recentSearchService.deleteAllRecentSearches(user);
         return ResponseEntity.ok().build();
     }
