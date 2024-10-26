@@ -64,11 +64,10 @@ public class ProductController {
     }
 
     @GetMapping
-    @Operation(summary = "List all products", description = "Retrieves a list of all available products")
-    public ResponseEntity<List<ProductResponse>> getProducts(Authentication authentication) {
+    public ResponseEntity<List<ProductResponse>> getProducts() {
         List<Video> videos = videoService.getAllVideos();
         List<ProductResponse> response = videos.stream()
-                .map(video -> convertToProductResponse(video, authentication))
+                .map(video -> convertToProductResponse(video, null))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(response);
     }
@@ -76,40 +75,45 @@ public class ProductController {
     @GetMapping("/{id}")
     @Operation(summary = "Get product details", description = "Retrieves details of a specific product")
     public ResponseEntity<ProductResponse> getProduct(
-            @Parameter(description = "ID of the product") @PathVariable Long id,
-            Authentication authentication) {
+            @Parameter(description = "ID of the product") @PathVariable Long id) {  // Authentication 제거
         return videoService.getVideoById(id)
-                .map(video -> ResponseEntity.ok(convertToProductResponse(video, authentication)))
+                .map(video -> ResponseEntity.ok(convertToProductResponse(video, null)))  // null 전달
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Create a product", description = "Creates a new product with image")
     public ResponseEntity<ProductResponse> createProduct(
-            @RequestParam("title") String title,
-            @RequestParam("description") String description,
-            @RequestParam("image") MultipartFile file,
-            @RequestParam("totalQuantity") Integer totalQuantity,
-            @RequestParam(value = "hashtags", required = false) String hashtags,
-            Authentication authentication) throws IOException {
+            @ModelAttribute ProductCreateRequest request) throws IOException {
 
-        if (!file.getContentType().startsWith("image/")) {
+        if (!request.getImage().getContentType().startsWith("image/")) {
             return ResponseEntity.badRequest().build();
         }
 
-        User currentUser = userService.findByUsername(authentication.getName());
+        // 테스트용 임시 사용자 생성 또는 조회
+        User currentUser = userService.findByUsername("as12"); // 데이터베이스에 있는 사용자명으로 변경
+
         Video video = new Video();
-        video.setTitle(title);
-        video.setDescription(description);
+        video.setTitle(request.getTitle());
+        video.setDescription(request.getDescription());
         video.setUser(currentUser);
-        video.setTotalQuantity(totalQuantity);
-        video.setAvailableQuantity(totalQuantity);
+        video.setTotalQuantity(request.getTotalQuantity());
+        video.setAvailableQuantity(request.getTotalQuantity());
         video.setReservationStatus(Video.ReservationStatus.AVAILABLE);
 
-        Set<String> hashtagSet = extractHashtags(description, hashtags);
-        video = videoService.uploadVideo(video, file, hashtagSet);
+        Set<String> hashtagSet = extractHashtags(request.getDescription(), request.getHashtags());
+        video = videoService.uploadVideo(video, request.getImage(), hashtagSet);
 
-        return ResponseEntity.ok(convertToProductResponse(video, authentication));
+        return ResponseEntity.ok(convertToProductResponse(video, null));  // null 전달
+    }
+
+    @Getter @Setter
+    public static class ProductCreateRequest {
+        private String title;
+        private String description;
+        private MultipartFile image;
+        private Integer totalQuantity;
+        private String hashtags;
     }
 
     @PutMapping("/{id}")
@@ -119,8 +123,7 @@ public class ProductController {
             @RequestParam("title") String title,
             @RequestParam("description") String description,
             @RequestParam(value = "image", required = false) MultipartFile file,
-            @RequestParam("totalQuantity") Integer totalQuantity,
-            Authentication authentication) throws IOException {
+            @RequestParam("totalQuantity") Integer totalQuantity) throws IOException {  // Authentication 제거
 
         Optional<Video> videoOptional = videoService.getVideoById(id);
         if (videoOptional.isEmpty()) {
@@ -128,11 +131,7 @@ public class ProductController {
         }
 
         Video video = videoOptional.get();
-        User currentUser = userService.findByUsername(authentication.getName());
-
-        if (!video.getUser().getId().equals(currentUser.getId())) {
-            return ResponseEntity.status(403).build();
-        }
+        // 인증 체크 제거
 
         video.setTitle(title);
         video.setDescription(description);
@@ -147,20 +146,15 @@ public class ProductController {
             video = videoService.updateVideo(video);
         }
 
-        return ResponseEntity.ok(convertToProductResponse(video, authentication));
+        return ResponseEntity.ok(convertToProductResponse(video, null));  // null 전달
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a product", description = "Deletes an existing product")
-    public ResponseEntity<?> deleteProduct(@PathVariable Long id, Authentication authentication) {
+    public ResponseEntity<?> deleteProduct(@PathVariable Long id) {  // Authentication 제거
         try {
-            User currentUser = userService.findByUsername(authentication.getName());
             Video video = videoService.getVideoById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Product not found"));
-
-            if (!video.getUser().getId().equals(currentUser.getId())) {
-                return ResponseEntity.status(403).build();
-            }
 
             videoService.deleteVideo(id);
             return ResponseEntity.ok().build();
@@ -173,17 +167,13 @@ public class ProductController {
     @Operation(summary = "Reserve a product", description = "Creates a reservation for a product")
     public ResponseEntity<?> createReservation(
             @PathVariable Long id,
-            @RequestBody ReservationRequest request,
-            Authentication authentication) {
+            @RequestBody ReservationRequest request) {  // Authentication 제거
         try {
-            User currentUser = userService.findByUsername(authentication.getName());
+            // 테스트용 임시 사용자
+            User currentUser = userService.findByUsername("as12"); // 데이터베이스에 있는 사용자명으로 변경
+
             Video video = videoService.getVideoById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Product not found"));
-
-            if (video.getUser().getId().equals(currentUser.getId())) {
-                return ResponseEntity.badRequest()
-                        .body(Map.of("message", "Cannot reserve your own product"));
-            }
 
             if (request.getQuantity() == null || request.getQuantity() <= 0) {
                 return ResponseEntity.badRequest()
@@ -232,13 +222,11 @@ public class ProductController {
         response.setAvailableQuantity(video.getAvailableQuantity());
         response.setStatus(video.getReservationStatus().name());
 
-        // Convert Hashtag entities to strings
         List<String> hashtagStrings = video.getHashtags().stream()
                 .map(Hashtag::getName)
                 .collect(Collectors.toList());
         response.setHashtags(hashtagStrings);
 
-        // Use the correct method name for getting image file name
         response.setImageUrl("/api/products/images/" + video.getImageUrl());
 
         ProductResponse.UserInfo userInfo = new ProductResponse.UserInfo();
@@ -246,10 +234,8 @@ public class ProductController {
         userInfo.setUsername(video.getUser().getUsername());
         response.setUser(userInfo);
 
-        if (authentication != null) {
-            User currentUser = userService.findByUsername(authentication.getName());
-            response.setFollowedByCurrentUser(followService.isFollowing(currentUser, video.getUser()));
-        }
+        // 인증 관련 부분 제거
+        response.setFollowedByCurrentUser(false);
 
         return response;
     }
