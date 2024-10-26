@@ -183,7 +183,7 @@ public class VideoServiceImpl implements VideoService {
 
     @Override
     public List<Video> searchVideos(String query) {
-        return videoRepository.findByTitleContainingOrDescriptionContaining(query, query);
+        return videoRepository.findByTitleContainingOrDescriptionContainingOrUserUsernameContaining(query, query, query);
     }
 
     @Override

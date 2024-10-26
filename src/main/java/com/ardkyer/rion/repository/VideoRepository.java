@@ -20,7 +20,7 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
     List<Video> findByReservationsUser(User user);
 
     // 검색 관련
-    List<Video> findByTitleContainingOrDescriptionContaining(String title, String description);
+    List<Video> findByTitleContainingOrDescriptionContainingOrUserUsernameContaining(String title, String description, String username);
 
     // 해시태그 검색
     @Query("SELECT v FROM Video v JOIN v.hashtags h WHERE h.name IN :hashtags")
