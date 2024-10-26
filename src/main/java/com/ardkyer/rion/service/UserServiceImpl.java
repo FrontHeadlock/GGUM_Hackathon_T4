@@ -2,14 +2,21 @@ package com.ardkyer.rion.service;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.ardkyer.rion.dto.UserRegistrationDto;
+import com.ardkyer.rion.dto.*;
+import com.ardkyer.rion.dto.request.LoginRequest;
+import com.ardkyer.rion.dto.request.SignupRequest;
+import com.ardkyer.rion.dto.response.LoginResponse;
+import com.ardkyer.rion.dto.response.UserResponse;
 import com.ardkyer.rion.entity.EmailVerification;
 import com.ardkyer.rion.entity.User;
 import com.ardkyer.rion.repository.EmailVerificationRepository;
 import com.ardkyer.rion.repository.UserRepository;
+import com.ardkyer.rion.security.JwtTokenProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,6 +27,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 
+
 @Service
 @Slf4j
 public class UserServiceImpl implements UserService {
@@ -28,6 +36,8 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final AmazonS3 amazonS3Client;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final AuthenticationManager authenticationManager;
 
     @Value("${spring.mail.username}")
     private String fromEmail;
@@ -41,12 +51,16 @@ public class UserServiceImpl implements UserService {
             EmailVerificationRepository emailVerificationRepository,
             PasswordEncoder passwordEncoder,
             EmailService emailService,
-            AmazonS3 amazonS3Client) {
+            AmazonS3 amazonS3Client,
+            JwtTokenProvider jwtTokenProvider,
+            AuthenticationManager authenticationManager) {
         this.userRepository = userRepository;
         this.emailVerificationRepository = emailVerificationRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.amazonS3Client = amazonS3Client;
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.authenticationManager = authenticationManager;
     }
 
     private String generateVerificationCode() {
@@ -240,4 +254,56 @@ public class UserServiceImpl implements UserService {
 
         return userRepository.save(user);
     }
+
+    @Override
+    @Transactional
+    public UserResponse registerUser(SignupRequest request) {
+        if (!isEmailVerified(request.getEmail())) {
+            throw new RuntimeException("이메일 인증이 필요합니다.");
+        }
+
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
+        }
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+        }
+
+        User user = User.builder()
+                .email(request.getEmail())
+                .username(request.getUsername())
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .emailVerified(true)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .roles(Collections.singleton("ROLE_USER"))
+                .build();
+
+        User savedUser = userRepository.save(user);
+        return UserResponse.from(savedUser);
+    }
+
+    @Override
+    @Transactional
+    public LoginResponse login(LoginRequest request) {
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+            );
+
+            User user = userRepository.findByEmail(request.getEmail())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            String token = jwtTokenProvider.createToken(user.getUsername());
+
+            return LoginResponse.builder()
+                    .token(token)
+                    .user(UserResponse.from(user))
+                    .build();
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid email or password");
+        }
+    }
+
 }

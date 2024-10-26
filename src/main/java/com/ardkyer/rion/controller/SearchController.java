@@ -1,6 +1,5 @@
 package com.ardkyer.rion.controller;
 
-import com.ardkyer.rion.entity.Exercise;
 import com.ardkyer.rion.entity.RecentSearch;
 import com.ardkyer.rion.entity.User;
 import com.ardkyer.rion.entity.Video;

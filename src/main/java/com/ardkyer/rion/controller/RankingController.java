@@ -1,7 +1,6 @@
 package com.ardkyer.rion.controller;
 
 import com.ardkyer.rion.entity.User;
-import com.ardkyer.rion.entity.Video;
 import com.ardkyer.rion.service.UserService;
 import com.ardkyer.rion.service.VideoService;
 import com.ardkyer.rion.service.FollowService;
