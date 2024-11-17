@@ -43,3 +43,11 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+bootJar{
+	archiveFileName = 'rion-0.0.1-SNAPSHOT.jar'
+}
+
+tasks.named('jar'){
+	enabled = false
+}

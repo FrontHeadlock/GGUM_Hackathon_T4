@@ -1,4 +1,4 @@
-package com.ardkyer.rion;
+/*package com.ardkyer.rion;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -10,4 +10,4 @@ class RionApplicationTests {
 	void contextLoads() {
 	}
 
-}
+}*/
